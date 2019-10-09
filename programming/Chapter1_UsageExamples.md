@@ -13,7 +13,7 @@ The first code section creates the stochastic model. To this end the user must d
             const double youngModulus = 2.1e8;
 
             var domainMapper = new CantileverStochasticDomainMapper(new [] { 0d, 0d, 0d });
-            var realizer = new GiannisStructuralStochasticRealizer(youngModulus, domainMapper);
+            var realizer = new StructuralStochasticRealizer(youngModulus, domainMapper);
             var evaluator = new StructuralStochasticEvaluator(youngModulus, domainMapper);
             var m = new MonteCarlo(iterations, realizer, evaluator);
             m.Evaluate();
