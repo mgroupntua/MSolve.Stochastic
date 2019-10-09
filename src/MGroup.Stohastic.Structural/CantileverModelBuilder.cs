@@ -7,9 +7,9 @@ using MGroup.Stochastic.Interfaces;
 
 namespace MGroup.Stochastic.Structural
 {
-    public class GiannisModelBuilder
+    public class CantileverModelBuilder
     {
-        public GiannisModelBuilder()
+        public CantileverModelBuilder()
         {
         }
 

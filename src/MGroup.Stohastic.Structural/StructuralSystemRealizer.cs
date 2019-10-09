@@ -1,15 +1,15 @@
-﻿using MGroup.FEM.Entities;
+using MGroup.FEM.Entities;
 using MGroup.Stochastic.Interfaces;
 using MGroup.Stochastic.Structural.StochasticRealizers;
 
 namespace MGroup.Stochastic.Structural
 {
-    public class GiannisStructuralStochasticRealizer : ISystemRealizer
+    public class StructuralSystemRealizer : ISystemRealizer
     {
         public double YoungModulus { get; }
         private readonly IStochasticDomainMapper DomainMapper;
         public KarhunenLoeveCoefficientsProvider StochasticRealization { get; }
-        public GiannisModelBuilder ModelBuilder { get; }
+        public CantileverModelBuilder ModelBuilder { get; }
         private Model currentModel;
         int karLoeveTerms = 2;
         double[] domainBounds = new double[2] { 0, 1.0 };
@@ -23,15 +23,15 @@ namespace MGroup.Stochastic.Structural
         int mcsamples = 5;
 
 
-        /// <summary>Initializes a new instance of the <see cref="GiannisStructuralStochasticRealizer"/> class.</summary>
+        /// <summary>Initializes a new instance of the <see cref="StructuralSystemRealizer"/> class.</summary>
         /// <param name="youngModulus">The young modulus.</param>
         /// <param name="domainMapper">The domain mapper.</param>
-        public GiannisStructuralStochasticRealizer(double youngModulus, IStochasticDomainMapper domainMapper)
+        public StructuralSystemRealizer(double youngModulus, IStochasticDomainMapper domainMapper)
         {
             YoungModulus = youngModulus;
             meanValue = youngModulus;
             DomainMapper = domainMapper;
-            ModelBuilder = new GiannisModelBuilder();
+            ModelBuilder = new CantileverModelBuilder();
             StochasticRealization = new KarhunenLoeveCoefficientsProvider(partition, meanValue, midpointMethod,
             isGaussian, karLoeveTerms, domainBounds, sigmaSquare, correlationLength);
         }
