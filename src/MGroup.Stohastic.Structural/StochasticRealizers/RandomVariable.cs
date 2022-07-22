@@ -1,6 +1,8 @@
-﻿using System;
+using System;
 using MGroup.Stochastic.Interfaces;
-using Troschuetz.Random.Distributions.Continuous;
+using Accord.Statistics.Distributions;
+using Accord.Statistics.Distributions.Univariate;
+using Accord.Statistics.Distributions.Multivariate;
 
 namespace MGroup.Stochastic.Structural.StochasticRealizers
 {
@@ -40,11 +42,11 @@ namespace MGroup.Stochastic.Structural.StochasticRealizers
             {
                 case RandomVariableDistributionType.Normal:
                     var normalDistribution = new NormalDistribution(_meanValue, _standardDeviation);
-                    return _randomVariable = normalDistribution.NextDouble();
+                    return _randomVariable = normalDistribution.Generate();
                     break;
                 case RandomVariableDistributionType.Lognormal:
                     var lognormal = new LognormalDistribution(_meanValue, _standardDeviation * _meanValue);
-                    return _randomVariable = lognormal.NextDouble();
+                    return _randomVariable = lognormal.Generate();
                     break;
                 default:
                     return 0;

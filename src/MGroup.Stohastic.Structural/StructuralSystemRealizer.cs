@@ -1,4 +1,4 @@
-using MGroup.FEM.Entities;
+using MGroup.MSolve.Discretization.Entities;
 using MGroup.Stochastic.Interfaces;
 using MGroup.Stochastic.Structural.StochasticRealizers;
 

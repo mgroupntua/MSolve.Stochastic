@@ -1,6 +1,6 @@
-using MGroup.Analyzers;
-using MGroup.FEM.Entities;
-using MGroup.Problems;
+using MGroup.Constitutive.Structural;
+using MGroup.MSolve.Discretization.Entities;
+using MGroup.NumericalAnalyzers;
 using MGroup.Solvers.Direct;
 using MGroup.Stochastic.Interfaces;
 using MGroup.Stochastic.Structural.StochasticRealizers;
@@ -50,14 +50,16 @@ namespace MGroup.Stochastic.Structural
         /// <returns></returns>
         public double[] Evaluate(int iteration)
         {
-            var solver = new SkylineSolver.Builder().BuildSolver(currentModel);
-            var provider = new ProblemStructural(currentModel, solver);
-            var childAnalyzer = new LinearAnalyzer(currentModel, solver, provider);
-            var parentAnalyzer = new StaticAnalyzer(currentModel, solver, provider, childAnalyzer);
+            var solverFactory = new SkylineSolver.Factory();
+			var algebraicModel = solverFactory.BuildAlgebraicModel(currentModel);
+			var solver = solverFactory.BuildSolver(algebraicModel);
+			var problem = new ProblemStructural(currentModel, algebraicModel, solver);
+			var linearAnalyzer = new LinearAnalyzer(algebraicModel, solver, problem);
+			var staticAnalyzer = new StaticAnalyzer(currentModel, algebraicModel, solver, problem, linearAnalyzer);
 
-            parentAnalyzer.Initialize();
-            parentAnalyzer.Solve();
-            return new[] { solver.LinearSystems[0].Solution[56], solver.LinearSystems[0].Solution[58] };
+			staticAnalyzer.Initialize();
+			staticAnalyzer.Solve();
+			return new[] { solver.LinearSystem.Solution.SingleVector[56], solver.LinearSystem.Solution.SingleVector[58] };
         }
 
     }

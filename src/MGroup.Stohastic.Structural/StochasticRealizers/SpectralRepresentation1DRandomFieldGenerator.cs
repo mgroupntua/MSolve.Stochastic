@@ -1,6 +1,8 @@
-﻿using System;
+using System;
 using MGroup.Stochastic.Interfaces;
-using Troschuetz.Random.Distributions.Continuous;
+using Accord.Statistics.Distributions;
+using Accord.Statistics.Distributions.Univariate;
+using Accord.Statistics.Distributions.Multivariate;
 
 namespace MGroup.Stochastic.Structural.StochasticRealizers
 {
@@ -131,10 +133,10 @@ namespace MGroup.Stochastic.Structural.StochasticRealizers
         public void ResetSampleGeneration()
         {
             phi = new double[frequencyIntervals];
-            var Phi = new ContinuousUniformDistribution(0d, 2d * Math.PI);
+            var Phi = new UniformContinuousDistribution(0d, 2d * Math.PI);
             for (int i = 0; i < frequencyIntervals; i++)
             {
-                phi[i] = Phi.NextDouble();
+                phi[i] = Phi.Generate();
             }
         }
 
