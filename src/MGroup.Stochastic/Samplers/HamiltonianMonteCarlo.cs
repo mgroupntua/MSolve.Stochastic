@@ -41,7 +41,7 @@ namespace MGroup.Stochastic
             var current_q = new double[dimensions];
             var current_gradModel = 0d;
             var current_gradProposal = 0d;
-            var current_U = -model(current_q);
+            var current_U = -Math.Log(model(current_q));
             var current_K = 0d;
             var proposed_U = 0d;
             var proposed_K = 0d;
@@ -50,7 +50,7 @@ namespace MGroup.Stochastic
             {
                 var q = (double[])current_q.Clone();
                 var p = proposalDistribution.Generate();
-                var current_p = (double[])p.Clone(); ;
+                var current_p = p.Copy();
                 for (int k = 0; k < dimensions; k++)
                 {
                     current_gradModel = gradModel(q, k);
@@ -70,7 +70,7 @@ namespace MGroup.Stochastic
                     p[k] = -p[k];
                 }
                 current_K = CalculateMinusLogProposal(current_p);
-                proposed_U = -model(q);
+                proposed_U = -Math.Log(model(q));
                 proposed_K = CalculateMinusLogProposal(p);
 
                 if (Math.Log(randomSource.NextDouble()) < Math.Exp (current_U - proposed_U + current_K - proposed_K))
@@ -80,7 +80,7 @@ namespace MGroup.Stochastic
                     {
                         samples[acceptedSamples - 1, i] = q[i];
                         current_q[i] = q[i];
-                        current_U = -model(current_q);
+                        current_U = -Math.Log(model(current_q));
                     }
                 }
             }

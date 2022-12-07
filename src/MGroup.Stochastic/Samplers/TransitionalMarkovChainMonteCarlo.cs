@@ -15,8 +15,8 @@ namespace MGroup.Stochastic
     public class TransitionalMarkovChainMonteCarlo : IMarkovChainMonteCarloSampler
     {
         Func<double[], double> model;
-        Func<double[]> initialModel;
-        MultivariateNormalDistribution proposalDistribution;
+		MultivariateNormalDistribution prior;
+        MultivariateNormalDistribution likelihood;
 
         public double[] initialSample;
         private double[] currentSample;
@@ -27,11 +27,12 @@ namespace MGroup.Stochastic
         private double scalingFactor;
         private Random randomSource;
 
-        public TransitionalMarkovChainMonteCarlo(int dimensions, Func<double[], double> model, Func<double[]> initialModel, double coefficientOfVariation = 1, double scalingFactor = 0.2)
+        public TransitionalMarkovChainMonteCarlo(int dimensions, Func<double[], double> model, MultivariateNormalDistribution likelihood, MultivariateNormalDistribution prior, double coefficientOfVariation = 1, double scalingFactor = 0.2)
         {
             this.model = model;
-            this.initialModel = initialModel;
-            this.dimensions = dimensions;
+            this.prior = prior;
+			this.likelihood = likelihood;
+			this.dimensions = dimensions;
             this.coefficientOfVariation = coefficientOfVariation;
             this.scalingFactor = scalingFactor;
             this.currentSample = new double[dimensions];
@@ -43,14 +44,16 @@ namespace MGroup.Stochastic
         {
             var samples = new double[numSamples, dimensions];
             var modelEvaluations = new double[numSamples];
-            for (int i = 0; i < numSamples; i++)
+			var likelihoodEvaluations = new double[numSamples];
+			for (int i = 0; i < numSamples; i++)
             {
-                var priorSample = initialModel();
+                var priorSample = prior.Generate();
                 for (int j = 0; j < dimensions; j++)
                 {
                     samples[i, j] = priorSample[j];
                 }
                 modelEvaluations[i] = model(priorSample);
+				likelihoodEvaluations[i] = likelihood.LogProbabilityDensityFunction(modelEvaluations[i]);
             }
             var weights = new double[numSamples];
             var p_current = 0d;
@@ -66,7 +69,7 @@ namespace MGroup.Stochastic
                     p_temp = (p_lower + p_upper) / 2;
                     for (int i = 0; i < numSamples; i++)
                     {
-                        weights[i] = Math.Pow(modelEvaluations[i], p_temp - p_current);
+                        weights[i] = Math.Exp((p_temp - p_current) * likelihoodEvaluations[i]);
                     }
                     var currentCoV = Measures.StandardDeviation(weights) / Measures.Mean(weights);
                     if (currentCoV > coefficientOfVariation)
@@ -105,22 +108,24 @@ namespace MGroup.Stochastic
                             covarProposal[ii, jj] += b * b * normalizedWeights[i] * (samples[i, ii] - meanProposal[ii]) * (samples[i, jj] - meanProposal[jj]);
                         }
                 int[] randomSampleInd = GeneralDiscreteDistribution.Random(normalizedWeights, numSamples);
-                var currentSamples = (double[,])samples.Clone();
-                var currentmodelEvaluations = (double[])modelEvaluations.Clone();
+                var currentSamples = samples.Copy();
+                var currentmodelEvaluations = modelEvaluations.Copy();
+				var currentLikehoodEvaluations = likelihoodEvaluations.Copy();
                 for (int i = 0; i < numSamples; i++)
                 {
                     double[][] candidateSample = MultivariateNormalDistribution.Generate(samples: 1, mean: currentSamples.GetRow<double>(randomSampleInd[i]), covariance: covarProposal);
                     var candidateModelEvaluation = model(candidateSample[0]);
-                    var modelEvaluationRatio = Math.Pow(candidateModelEvaluation / modelEvaluations[i], p_current);
-                    if (modelEvaluationRatio > Generator.Random.NextDouble())
+					var candidateLikelihoodEvaluation = likelihood.LogProbabilityDensityFunction(candidateModelEvaluation);
+                    var likelihoodEvaluationRatio = Math.Exp(p_current * (candidateLikelihoodEvaluation - likelihoodEvaluations[i]));
+                    if (likelihoodEvaluationRatio > Generator.Random.NextDouble())
                     {
                         for (int j = 0; j < dimensions; j++)
                         {
                             samples[i,j] = candidateSample[0][j];
                             currentSamples[randomSampleInd[i], j] = candidateSample[0][j];
                         }
-                        modelEvaluations[i] = candidateModelEvaluation;
-                        currentmodelEvaluations[randomSampleInd[i]] = candidateModelEvaluation;
+						likelihoodEvaluations[i] = candidateLikelihoodEvaluation;
+						currentLikehoodEvaluations[randomSampleInd[i]] = candidateLikelihoodEvaluation;
                     }
                     else
                     {
@@ -128,7 +133,7 @@ namespace MGroup.Stochastic
                         {
                             samples[i, j] = currentSamples[randomSampleInd[i],j];
                         }
-                        modelEvaluations[i] = currentmodelEvaluations[randomSampleInd[i]];
+						likelihoodEvaluations[i] = currentLikehoodEvaluations[randomSampleInd[i]];
                     }
                 }
             }

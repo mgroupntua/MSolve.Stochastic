@@ -1,4 +1,6 @@
 using System;
+
+using Accord;
 using Accord.Statistics.Distributions.Multivariate;
 using MGroup.LinearAlgebra.Matrices;
 
@@ -9,16 +11,17 @@ namespace MGroup.Stochastic
         private MultivariateContinuousDistribution priorDistribution;
         private MultivariateContinuousDistribution likelihoodFunction;
         private Func<double[], double[]> model;
-        public IMarkovChainMonteCarloSampler Sampler { get; set; }
+		private IMarkovChainMonteCarloSampler Sampler;
 
         double[] measurementValues;
         double[] measurementError;
 
-        public BayesianUpdate(Func<double[], double[]> model, MultivariateContinuousDistribution priorDistribution, double[] measurementValues, double[] measurementError)
+        public BayesianUpdate(Func<double[], double[]> model, MultivariateContinuousDistribution priorDistribution, IMarkovChainMonteCarloSampler sampler, double[] measurementValues, double[] measurementError)
         {
             this.priorDistribution = priorDistribution;
             this.measurementValues = measurementValues;
             this.measurementError = measurementError;
+			this.Sampler = sampler;
             this.model = model;
             likelihoodFunction = CreateLikelihoodFunction();
         }
@@ -53,28 +56,34 @@ namespace MGroup.Stochastic
             return likelihoodEvaluation;
         }
 
-        public double GradLogLikelihoodFunctionEvaluator(double[] input, int dimension)
+        public double GradLogModelEvaluator(double[] input, int dimension)
         {
-            var modelEvaluation = model(input);
-            //var inputNext = new double[input.Length];
-            //inputNext = inputl
-            //inputNext[dimension] += increment;
-            //var NextModelEvaluation = model(inputNext);
-            //var gradModel = (NextModelEvaluation - modelEvaluation) / increment;
-            var invLikelihoodCovarianceMatrix = Matrix.CreateFromArray(likelihoodFunction.Covariance).Invert();
-            var invLikelihoodCovariance = invLikelihoodCovarianceMatrix.CopyToArray2D();
-            var invPriorCovarianceMatrix = Matrix.CreateFromArray(priorDistribution.Covariance).Invert();
-            var invPriorCovariance = invPriorCovarianceMatrix.CopyToArray2D();
-            var gradLikelihoodTerm = 0d;
-            var gradPriorTerm = 0d;
-            for (int j = 0; j < modelEvaluation.Length; j++)
-            {
-                gradLikelihoodTerm += (modelEvaluation[dimension] - likelihoodFunction.Mean[dimension]) * invLikelihoodCovariance[dimension, j];
-                gradPriorTerm += (input[dimension] - priorDistribution.Mean[dimension]) * invPriorCovariance[dimension, j];
-            }
-            var gradLogLikelihoodEvaluation = gradLikelihoodTerm + gradPriorTerm; // -Math.Log(gradModel * gradTerm * proposalEvaluation * priorEvaluation)
+			var increment = 1e-8;
+			var modelEvaluation = model(input);
+			var inputNext = input.Copy();
+			inputNext[dimension] += increment;
+            var nextModelEvaluation = model(inputNext);
+			var priorEvaluation = priorDistribution.LogProbabilityDensityFunction(input);
+			var nextPriorEvaluation = priorDistribution.LogProbabilityDensityFunction(inputNext);
+			var likelihoodEvaluation = LogLikelihoodFunctionEvaluator(modelEvaluation);
+			var nextLikelihoodEvaluation = LogLikelihoodFunctionEvaluator(nextModelEvaluation);
+			var gradLikelihood = (nextLikelihoodEvaluation - likelihoodEvaluation) / increment;
+			var gradPrior = (nextPriorEvaluation - priorEvaluation);
+			var gradLogModel = priorEvaluation * gradLikelihood + gradPrior * likelihoodEvaluation;
+			//var invLikelihoodCovarianceMatrix = Matrix.CreateFromArray(likelihoodFunction.Covariance).Invert();
+			//var invLikelihoodCovariance = invLikelihoodCovarianceMatrix.CopyToArray2D();
+			//var invPriorCovarianceMatrix = Matrix.CreateFromArray(priorDistribution.Covariance).Invert();
+			//var invPriorCovariance = invPriorCovarianceMatrix.CopyToArray2D();
+			//var gradLikelihoodTerm = 0d;
+			//var gradPriorTerm = 0d;
+			//for (int j = 0; j < modelEvaluation.Length; j++)
+   //         {
+   //             gradLikelihoodTerm += (modelEvaluation[dimension] - likelihoodFunction.Mean[dimension]) * invLikelihoodCovariance[dimension, j];
+   //             gradPriorTerm += (input[dimension] - priorDistribution.Mean[dimension]) * invPriorCovariance[dimension, j];
+   //         }
+   //         var gradLogLikelihoodEvaluation = gradLikelihoodTerm + gradPriorTerm; // -Math.Log(gradModel * gradTerm * proposalEvaluation * priorEvaluation)
 
-            return gradLogLikelihoodEvaluation;
+            return gradLogModel;
         }
 
         public double[] PriorDistributionGenerator()
@@ -86,7 +95,7 @@ namespace MGroup.Stochastic
         public double[,] Solve(int numSamples)
         {
             if (Sampler == null)
-                throw new ArgumentException();
+                throw new ArgumentException("Need to assign a sampler first");
             var samples = Sampler.GenerateSamples(numSamples);
             return samples;
         }
