@@ -75,7 +75,7 @@ namespace MGroup.Stochastic
 					nodeSet[j] = (Node)model.NodesDictionary[nodeID];
 				}
 
-				var elementFactory = new ContinuumElement3DFactory(new ElasticMaterial3D(parameters[0], parameters[1]), new TransientAnalysisProperties(1, 0, 0));
+				var elementFactory = new ContinuumElement3DFactory(new ElasticMaterial3D(parameters[0], 0.3), new TransientAnalysisProperties(1, 0, 0));
 				var element = elementFactory.CreateElement(CellType.Hexa8, nodeSet);
 				element.ID = i + 1;
 
@@ -101,7 +101,7 @@ namespace MGroup.Stochastic
 
 			var computedDisplacements = SolveModel(model);
 
-			return new double[] { 0 };
+			return new double[] { computedDisplacements.GetTotalDisplacement(1, computedDisplacements.WatchDofs[4].Item1, StructuralDof.TranslationZ) };
 		}
 
 		private IncrementalDisplacementsLog SolveModel(Model model)

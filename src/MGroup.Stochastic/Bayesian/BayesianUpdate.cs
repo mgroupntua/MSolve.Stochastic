@@ -24,9 +24,9 @@ namespace MGroup.Stochastic
 			likelihoodFunction = CreateLikelihoodFunction();
 		}
 
-		public double PosteriorModel(double[] sample) => likelihoodFunction.LogProbabilityDensityFunction(sample) + priorDistribution.LogProbabilityFunction(sample);
+		public double PosteriorModel(double[] sample) => likelihoodFunction.LogProbabilityDensityFunction(model(sample)) + priorDistribution.LogProbabilityFunction(sample);
 
-		public double LikelihoodModel(double[] sample) => likelihoodFunction.LogProbabilityDensityFunction(sample);
+		public double LikelihoodModel(double[] sample) => likelihoodFunction.LogProbabilityDensityFunction(model(sample));
 
 		public ISampleableDistribution<double[]> PriorDistribution { get => priorDistribution; }
 
