@@ -1,70 +1,77 @@
 using System;
 
 using Accord;
+using Accord.Statistics.Distributions;
 using Accord.Statistics.Distributions.Multivariate;
-using MGroup.LinearAlgebra.Matrices;
 
 namespace MGroup.Stochastic
 {
-    public class BayesianUpdate
-    {
-        private MultivariateContinuousDistribution priorDistribution;
-        private MultivariateContinuousDistribution likelihoodFunction;
-        private Func<double[], double[]> model;
-		private IMarkovChainMonteCarloSampler Sampler;
+	public class BayesianUpdate
+	{
+		private ISampleableDistribution<double[]> priorDistribution;
+		private MultivariateContinuousDistribution likelihoodFunction;
+		private Func<double[], double[]> model;
 
-        double[] measurementValues;
-        double[] measurementError;
+		double[] measurementValues;
+		double[] measurementError;
 
-        public BayesianUpdate(Func<double[], double[]> model, MultivariateContinuousDistribution priorDistribution, IMarkovChainMonteCarloSampler sampler, double[] measurementValues, double[] measurementError)
-        {
-            this.priorDistribution = priorDistribution;
-            this.measurementValues = measurementValues;
-            this.measurementError = measurementError;
-			this.Sampler = sampler;
-            this.model = model;
-            likelihoodFunction = CreateLikelihoodFunction();
-        }
+		public BayesianUpdate(Func<double[], double[]> model, ISampleableDistribution<double[]> priorDistribution, double[] measurementValues, double[] measurementError)
+		{
+			this.priorDistribution = priorDistribution;
+			this.measurementValues = measurementValues;
+			this.measurementError = measurementError;
+			this.model = model;
+			likelihoodFunction = CreateLikelihoodFunction();
+		}
 
-        public double PosteriorFunctionEvaluator(double[] input)
-        {
-            var modelEvaluation = model(input);
-            var likelihoodEvaluation = likelihoodFunction.ProbabilityDensityFunction(modelEvaluation);
-            var priorEvaluation = priorDistribution.ProbabilityDensityFunction(input);
-            return likelihoodEvaluation * priorEvaluation;
-        }
+		public double PosteriorModel(double[] sample) => likelihoodFunction.LogProbabilityDensityFunction(sample) + priorDistribution.LogProbabilityFunction(sample);
 
-        public double LogPosteriorFunctionEvaluator(double[] input)
-        {
-            var modelEvaluation = model(input);
-            var likelihoodEvaluation = likelihoodFunction.LogProbabilityDensityFunction(modelEvaluation);
-            var priorEvaluation = priorDistribution.LogProbabilityDensityFunction(input);
-            return likelihoodEvaluation + priorEvaluation;
-        }
+		public double LikelihoodModel(double[] sample) => likelihoodFunction.LogProbabilityDensityFunction(sample);
 
-        public double LikelihoodFunctionEvaluator(double[] input)
-        {
-            var modelEvaluation = model(input);
-            var likelihoodEvaluation = likelihoodFunction.ProbabilityDensityFunction(modelEvaluation);
-            return likelihoodEvaluation;
-        }
+		public ISampleableDistribution<double[]> PriorDistribution { get => priorDistribution; }
 
-        public double LogLikelihoodFunctionEvaluator(double[] input)
-        {
-            var modelEvaluation = model(input);
-            var likelihoodEvaluation = likelihoodFunction.LogProbabilityDensityFunction(modelEvaluation);
-            return likelihoodEvaluation;
-        }
+		public ISampleableDistribution<double[]> LikelihoodFuction { get => likelihoodFunction; }
 
-        public double GradLogModelEvaluator(double[] input, int dimension)
-        {
+		public double PosteriorFunctionEvaluator(double[] input)
+		{
+			var modelEvaluation = model(input);
+			var likelihoodEvaluation = likelihoodFunction.ProbabilityDensityFunction(modelEvaluation);
+			var priorEvaluation = priorDistribution.LogProbabilityFunction(input);
+			return likelihoodEvaluation * priorEvaluation;
+		}
+
+		public double LogPosteriorFunctionEvaluator(double[] input)
+		{
+			var modelEvaluation = model(input);
+			var likelihoodEvaluation = likelihoodFunction.LogProbabilityDensityFunction(modelEvaluation);
+			var priorEvaluation = priorDistribution.LogProbabilityFunction(input);
+			return likelihoodEvaluation + priorEvaluation;
+		}
+
+		public double LikelihoodFunctionEvaluator(double[] input)
+		{
+			var modelEvaluation = model(input);
+			var likelihoodEvaluation = likelihoodFunction.ProbabilityDensityFunction(modelEvaluation);
+			return likelihoodEvaluation;
+		}
+
+		public double LogLikelihoodFunctionEvaluator(double[] input)
+		{
+			var modelEvaluation = model(input);
+			var likelihoodEvaluation = likelihoodFunction.LogProbabilityDensityFunction(modelEvaluation);
+			return likelihoodEvaluation;
+		}
+
+		public double GradLogModelEvaluator(double[] input, int dimension)
+		{
 			var increment = 1e-8;
 			var modelEvaluation = model(input);
-			var inputNext = input.Copy();
+			var inputNext = new double[input.Length];
+			Array.Copy(input, inputNext, input.Length);
 			inputNext[dimension] += increment;
-            var nextModelEvaluation = model(inputNext);
-			var priorEvaluation = priorDistribution.LogProbabilityDensityFunction(input);
-			var nextPriorEvaluation = priorDistribution.LogProbabilityDensityFunction(inputNext);
+			var nextModelEvaluation = model(inputNext);
+			var priorEvaluation = priorDistribution.LogProbabilityFunction(input);
+			var nextPriorEvaluation = priorDistribution.LogProbabilityFunction(inputNext);
 			var likelihoodEvaluation = LogLikelihoodFunctionEvaluator(modelEvaluation);
 			var nextLikelihoodEvaluation = LogLikelihoodFunctionEvaluator(nextModelEvaluation);
 			var gradLikelihood = (nextLikelihoodEvaluation - likelihoodEvaluation) / increment;
@@ -77,39 +84,38 @@ namespace MGroup.Stochastic
 			//var gradLikelihoodTerm = 0d;
 			//var gradPriorTerm = 0d;
 			//for (int j = 0; j < modelEvaluation.Length; j++)
-   //         {
-   //             gradLikelihoodTerm += (modelEvaluation[dimension] - likelihoodFunction.Mean[dimension]) * invLikelihoodCovariance[dimension, j];
-   //             gradPriorTerm += (input[dimension] - priorDistribution.Mean[dimension]) * invPriorCovariance[dimension, j];
-   //         }
-   //         var gradLogLikelihoodEvaluation = gradLikelihoodTerm + gradPriorTerm; // -Math.Log(gradModel * gradTerm * proposalEvaluation * priorEvaluation)
+			//         {
+			//             gradLikelihoodTerm += (modelEvaluation[dimension] - likelihoodFunction.Mean[dimension]) * invLikelihoodCovariance[dimension, j];
+			//             gradPriorTerm += (input[dimension] - priorDistribution.Mean[dimension]) * invPriorCovariance[dimension, j];
+			//         }
+			//         var gradLogLikelihoodEvaluation = gradLikelihoodTerm + gradPriorTerm; // -Math.Log(gradModel * gradTerm * proposalEvaluation * priorEvaluation)
 
-            return gradLogModel;
-        }
+			return gradLogModel;
+		}
 
-        public double[] PriorDistributionGenerator()
-        {
-            var priorSample = priorDistribution.Generate();
-            return priorSample;
-        }
+		public double[] PriorDistributionGenerator()
+		{
+			var priorSample = priorDistribution.Generate();
+			return priorSample;
+		}
 
-        public double[,] Solve(int numSamples)
-        {
-            if (Sampler == null)
-                throw new ArgumentException("Need to assign a sampler first");
-            var samples = Sampler.GenerateSamples(numSamples);
-            return samples;
-        }
+		//public double[,] Solve(int numSamples)
+		//{
+		//	if (Sampler == null)
+		//		throw new ArgumentException("Need to assign a sampler first");
+		//	var samples = Sampler.GenerateSamples(numSamples);
+		//	return samples;
+		//}
 
 		private MultivariateContinuousDistribution CreateLikelihoodFunction()
 		{
 			var measurementErrors = new double[measurementValues.Length, measurementValues.Length];
 			for (int i = 0; i < measurementErrors.GetLength(0); i++)
 			{
-				measurementErrors[i, i] = Math.Pow(measurementError[i], 2);
+				measurementErrors[i, i] = measurementError[i];
 			}
 
 			return new MultivariateNormalDistribution(measurementValues, measurementErrors);
 		}
-
 	}
 }

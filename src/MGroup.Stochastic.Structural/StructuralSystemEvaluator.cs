@@ -53,9 +53,9 @@ namespace MGroup.Stochastic.Structural
             var solverFactory = new SkylineSolver.Factory();
 			var algebraicModel = solverFactory.BuildAlgebraicModel(currentModel);
 			var solver = solverFactory.BuildSolver(algebraicModel);
-			var problem = new ProblemStructural(currentModel, algebraicModel, solver);
+			var problem = new ProblemStructural(currentModel, algebraicModel);
 			var linearAnalyzer = new LinearAnalyzer(algebraicModel, solver, problem);
-			var staticAnalyzer = new StaticAnalyzer(currentModel, algebraicModel, solver, problem, linearAnalyzer);
+			var staticAnalyzer = new StaticAnalyzer(algebraicModel, problem, linearAnalyzer);
 
 			staticAnalyzer.Initialize();
 			staticAnalyzer.Solve();

@@ -50,7 +50,8 @@ namespace MGroup.Stochastic
             {
                 var q = (double[])current_q.Clone();
                 var p = proposalDistribution.Generate();
-                var current_p = p.Copy();
+				var current_p = new double[p.Length];
+				Array.Copy(p, current_p, p.Length);
                 for (int k = 0; k < dimensions; k++)
                 {
                     current_gradModel = gradModel(q, k);

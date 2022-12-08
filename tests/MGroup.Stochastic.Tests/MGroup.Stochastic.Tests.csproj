@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\MGroup.Stochastic.Structural\MGroup.Stochastic.Structural.csproj" />
     <ProjectReference Include="..\..\src\MGroup.Stochastic\MGroup.Stochastic.csproj" />
   </ItemGroup>
 

@@ -39,13 +39,13 @@ namespace MGroup.Stochastic
 			var acceptedSamples = 0;
 			var currentEvaluation = 0d;
 			if (initialSample == null)
-				currentEvaluation = Math.Log(model(new double[dimensions]));
+				currentEvaluation = model(proposalDistribution.Mean);
 			else
-				currentEvaluation = Math.Log(model(initialSample));
+				currentEvaluation = model(initialSample);
 			while (acceptedSamples < numSamples + burnIn)
 			{
 				candidateSample = proposalDistribution.Generate();
-				var candidateEvaluation = Math.Log(model(candidateSample));
+				var candidateEvaluation = model(candidateSample);
 				double Ratio = candidateEvaluation - currentEvaluation;
 				if (Math.Log(randomSource.NextDouble()) < Ratio)
 				{

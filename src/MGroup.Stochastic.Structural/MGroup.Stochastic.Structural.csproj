@@ -6,13 +6,14 @@
 
   <ItemGroup>
     <PackageReference Include="Accord.Math" Version="3.8.2-alpha" />
-    <PackageReference Include="MGroup.FEM.Structural" Version="0.2.0-unstable.33" />
-    <PackageReference Include="MGroup.NumericalAnalyzers.Discretization" Version="0.2.0-unstable.8" />
-    <PackageReference Include="MGroup.Solvers" Version="0.2.0-unstable.6" />
+    <PackageReference Include="MGroup.FEM.Structural" Version="0.2.0-unstable.108" />
+    <PackageReference Include="MGroup.MSolve.Core" Version="0.2.0-unstable.65" />
+    <PackageReference Include="MGroup.NumericalAnalyzers.Discretization" Version="0.2.0-unstable.53" />
+    <PackageReference Include="MGroup.Solvers" Version="0.2.0-unstable.18" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MGroup.Stohastic\MGroup.Stochastic.csproj" />
+    <ProjectReference Include="..\MGroup.Stochastic\MGroup.Stochastic.csproj" />
   </ItemGroup>
 
   <ItemGroup>
