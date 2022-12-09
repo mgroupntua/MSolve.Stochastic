@@ -1,6 +1,8 @@
 using System;
 using Accord.Statistics;
 using Accord.Statistics.Distributions.Multivariate;
+using Accord.Statistics.Distributions.Univariate;
+
 using Xunit;
 
 namespace MGroup.Stochastic.Tests
@@ -11,10 +13,10 @@ namespace MGroup.Stochastic.Tests
 		[Fact]
 		public static void FiniteElementModelTest()
 		{
-			var proposal = new MultivariateNormalDistribution(new double[] { 1353000 }, new double[,] { { 135300d * 135300d } });
-			var prior = new MultivariateNormalDistribution(new double[] { 1353000 }, new double[,] { { 135300d * 135300d } });
-			var measurementValues = new double[] { 2 };
-			var measurementError = new double[] { 135300d * 135300d };
+			var proposal = new MultivariateNormalDistribution(new double[] { 1353000 }, new double[,] { { 100000d * 100000d } });
+			var prior = new MultivariateUniformDistribution(new double[] { 353000 }, new double[] { 2353000 });
+			var measurementValues = new double[] { -0.1541071095408108 };
+			var measurementError = new double[] { 0.01 * 0.01 };
 			var model = new FiniteElementModel();
 			var bayesianInstance = new BayesianUpdate(model.CreateModel, prior, measurementValues, measurementError);
 			var sampler = new MetropolisHastings(1, bayesianInstance.PosteriorModel, proposal);
@@ -22,7 +24,7 @@ namespace MGroup.Stochastic.Tests
 			var mean = samples.Mean();
 			var std = samples.StandardDeviation();
 			Assert.True(Math.Abs(mean - 1353000) < 50000);
-			Assert.True(Math.Abs(std[0] - 135300) < 10000);
+			Assert.True(Math.Abs(std[0] - 100000d) < 15000);
 		}
 	}
 }

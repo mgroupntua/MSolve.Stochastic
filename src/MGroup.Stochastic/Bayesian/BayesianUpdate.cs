@@ -32,6 +32,17 @@ namespace MGroup.Stochastic
 
 		public ISampleableDistribution<double[]> LikelihoodFuction { get => likelihoodFunction; }
 
+		private MultivariateContinuousDistribution CreateLikelihoodFunction()
+		{
+			var measurementErrors = new double[measurementValues.Length, measurementValues.Length];
+			for (int i = 0; i < measurementErrors.GetLength(0); i++)
+			{
+				measurementErrors[i, i] = measurementError[i];
+			}
+
+			return new MultivariateNormalDistribution(measurementValues, measurementErrors);
+		}
+
 		public double PosteriorFunctionEvaluator(double[] input)
 		{
 			var modelEvaluation = model(input);
@@ -106,16 +117,5 @@ namespace MGroup.Stochastic
 		//	var samples = Sampler.GenerateSamples(numSamples);
 		//	return samples;
 		//}
-
-		private MultivariateContinuousDistribution CreateLikelihoodFunction()
-		{
-			var measurementErrors = new double[measurementValues.Length, measurementValues.Length];
-			for (int i = 0; i < measurementErrors.GetLength(0); i++)
-			{
-				measurementErrors[i, i] = measurementError[i];
-			}
-
-			return new MultivariateNormalDistribution(measurementValues, measurementErrors);
-		}
 	}
 }
