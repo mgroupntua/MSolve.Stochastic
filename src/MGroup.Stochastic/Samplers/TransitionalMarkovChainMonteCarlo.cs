@@ -9,48 +9,51 @@ using Accord.Statistics.Distributions.Univariate;
 using Accord.Math.Random;
 using Accord.Math.Decompositions;
 using Accord.Math;
+using System.Linq;
 
 namespace MGroup.Stochastic
 {
     public class TransitionalMarkovChainMonteCarlo : IMarkovChainMonteCarloSampler
     {
         Func<double[], double> model;
-		MultivariateNormalDistribution initialModel;
+		Func<double[]> initialSampler;
 
         public double[] initialSample;
         private double[] currentSample;
         private double[] candidateSample;
 
-        private int dimensions;
+        private int numModelParameters;
+		private int totalDimensions;
         private double coefficientOfVariation;
         private double scalingFactor;
         private Random randomSource;
 
-        public TransitionalMarkovChainMonteCarlo(int dimensions, Func<double[], double> model, MultivariateNormalDistribution initialModel, double coefficientOfVariation = 1, double scalingFactor = 0.2)
+        public TransitionalMarkovChainMonteCarlo(int numModelParameters, Func<double[], double> model, Func<double[]> initialSampler, double coefficientOfVariation = 1, double scalingFactor = 0.2)
         {
             this.model = model;
-            this.initialModel = initialModel;
-			this.dimensions = dimensions;
+            this.initialSampler = initialSampler;
+			this.totalDimensions = initialSampler().Length;
+			this.numModelParameters = numModelParameters;
             this.coefficientOfVariation = coefficientOfVariation;
             this.scalingFactor = scalingFactor;
-            this.currentSample = new double[dimensions];
-            this.candidateSample = new double[dimensions];
+            this.currentSample = new double[numModelParameters];
+            this.candidateSample = new double[numModelParameters];
             this.randomSource = Generator.Random;
         }
 
         public double[,] GenerateSamples(int numSamples)
         {
-            var samples = new double[numSamples, dimensions];
+            var samples = new double[numSamples, totalDimensions];
             var modelEvaluations = new double[numSamples];
 			var likelihoodEvaluations = new double[numSamples];
 			for (int i = 0; i < numSamples; i++)
             {
-                var priorSample = initialModel.Generate();
-                for (int j = 0; j < dimensions; j++)
+                var priorSample = initialSampler();
+                for (int j = 0; j < totalDimensions; j++)
                 {
                     samples[i, j] = priorSample[j];
                 }
-				likelihoodEvaluations[i] = model(priorSample);
+				likelihoodEvaluations[i] = model(priorSample.Take(numModelParameters).ToArray());
 				//likelihoodEvaluations[i] = likelihood.LogProbabilityDensityFunction(modelEvaluations[i]);
             }
             var weights = new double[numSamples];
@@ -90,17 +93,17 @@ namespace MGroup.Stochastic
                 {
                     normalizedWeights[i] = weights[i] / sumWeights;
                 }
-                var meanProposal = new double[dimensions];
-                var covarProposal = new double[dimensions, dimensions];
-                for (int j = 0; j < dimensions; j++)
+                var meanProposal = new double[totalDimensions];
+                var covarProposal = new double[totalDimensions, totalDimensions];
+                for (int j = 0; j < totalDimensions; j++)
                 {
                     for (int i = 0; i < numSamples; i++)
                     {
                         meanProposal[j] += normalizedWeights[i] * samples[i,j];
                     }
                 }
-                for (int ii = 0; ii < dimensions; ii++)
-                    for (int jj = 0; jj < dimensions; jj++)
+                for (int ii = 0; ii < totalDimensions; ii++)
+                    for (int jj = 0; jj < totalDimensions; jj++)
                         for (int i = 0; i < numSamples; i++)
                         {
                             covarProposal[ii, jj] += b * b * normalizedWeights[i] * (samples[i, ii] - meanProposal[ii]) * (samples[i, jj] - meanProposal[jj]);
@@ -112,12 +115,12 @@ namespace MGroup.Stochastic
                 for (int i = 0; i < numSamples; i++)
                 {
                     double[][] candidateSample = MultivariateNormalDistribution.Generate(samples: 1, mean: currentSamples.GetRow<double>(randomSampleInd[i]), covariance: covarProposal);
-                    var candidateLikelihoodEvaluation = model(candidateSample[0]);
+                    var candidateLikelihoodEvaluation = model(candidateSample[0].Take(numModelParameters).ToArray());
 					//var candidateLikelihoodEvaluation = likelihood.LogProbabilityDensityFunction(candidateModelEvaluation);
                     var likelihoodEvaluationRatio = Math.Exp(p_current * (candidateLikelihoodEvaluation - likelihoodEvaluations[i]));
                     if (likelihoodEvaluationRatio > Generator.Random.NextDouble())
                     {
-                        for (int j = 0; j < dimensions; j++)
+                        for (int j = 0; j < totalDimensions; j++)
                         {
                             samples[i,j] = candidateSample[0][j];
                             currentSamples[randomSampleInd[i], j] = candidateSample[0][j];
@@ -127,7 +130,7 @@ namespace MGroup.Stochastic
                     }
                     else
                     {
-                        for (int j = 0; j < dimensions; j++)
+                        for (int j = 0; j < totalDimensions; j++)
                         {
                             samples[i, j] = currentSamples[randomSampleInd[i],j];
                         }

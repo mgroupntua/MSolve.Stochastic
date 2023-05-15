@@ -14,7 +14,7 @@ using MGroup.NumericalAnalyzers.Discretization.NonLinear;
 using MGroup.NumericalAnalyzers.Logging;
 using MGroup.Solvers.Direct;
 
-namespace MGroup.Stochastic
+namespace MGroup.Stochastic.Tests.SupportiveClasses
 {
 
 	public class FiniteElementModel

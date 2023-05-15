@@ -2,6 +2,7 @@ using System;
 using Accord.Statistics.Distributions.Multivariate;
 using Accord.Math.Random;
 using MGroup.LinearAlgebra.Matrices;
+using System.Linq;
 
 namespace MGroup.Stochastic
 {
@@ -16,32 +17,34 @@ namespace MGroup.Stochastic
         private double[] currentSample;
         private double[] candidateSample;
 
-        private int dimensions;
+        private int numModelParameters;
+		private int totalDimensions;
         private int numSteps;
         private double stepSize;
         private Random randomSource;
 
-        public HamiltonianMonteCarlo(int dimensions, Func<double[], double> model, Func<double[], int, double> gradModel, MultivariateNormalDistribution proposal, int numSteps = 25, double stepSize = 0.25)
+        public HamiltonianMonteCarlo(int numModelParameters, Func<double[], double> model, Func<double[], int, double> gradModel, MultivariateNormalDistribution proposal, int numSteps = 25, double stepSize = 0.25)
         {
             this.model = model;
             this.gradModel = gradModel;
             this.proposalDistribution = proposal;
-            this.dimensions = dimensions;
+            this.numModelParameters = numModelParameters;
+			this.totalDimensions = proposal.Dimension;
             this.numSteps = numSteps;
             this.stepSize = stepSize;
-            this.currentSample = new double[dimensions];
-            this.candidateSample = new double[dimensions];
+            this.currentSample = new double[totalDimensions];
+            this.candidateSample = new double[totalDimensions];
             this.randomSource = Generator.Random;
         }
 
         public double[,] GenerateSamples(int numSamples)
         {
-            var samples = new double[numSamples, dimensions];
+            var samples = new double[numSamples, totalDimensions];
             var acceptedSamples = 0;
-            var current_q = new double[dimensions];
+            var current_q = new double[totalDimensions];
             var current_gradModel = 0d;
             var current_gradProposal = 0d;
-            var current_U = -model(current_q);
+            var current_U = -model(current_q.Take(numModelParameters).ToArray());
             var current_K = 0d;
             var proposed_U = 0d;
             var proposed_K = 0d;
@@ -52,9 +55,9 @@ namespace MGroup.Stochastic
                 var p = proposalDistribution.Generate();
 				var current_p = new double[p.Length];
 				Array.Copy(p, current_p, p.Length);
-                for (int k = 0; k < dimensions; k++)
+                for (int k = 0; k < totalDimensions; k++)
                 {
-                    current_gradModel = -gradModel(q, k);
+                    current_gradModel = -gradModel(q.Take(numModelParameters).ToArray(), k);
                     p[k] = p[k] - stepSize * current_gradModel / 2;
                     for (int j = 0; j < numSteps; j++)
                     {
@@ -62,26 +65,26 @@ namespace MGroup.Stochastic
                         q[k] = q[k] + stepSize * current_gradProposal;
                         if (j + 1 != numSteps)
                         {
-                            current_gradModel = -gradModel(q, k);
+                            current_gradModel = -gradModel(q.Take(numModelParameters).ToArray(), k);
                             p[k] = p[k] - stepSize * current_gradModel;
                         }
                     }
-                    current_gradModel = -gradModel(q, k);
+                    current_gradModel = -gradModel(q.Take(numModelParameters).ToArray(), k);
                     p[k] = p[k] - stepSize * current_gradModel / 2;
                     p[k] = -p[k];
                 }
                 current_K = CalculateMinusLogProposal(current_p);
-                proposed_U = -model(q);
+                proposed_U = -model(q.Take(numModelParameters).ToArray());
                 proposed_K = CalculateMinusLogProposal(p);
 
                 if (Math.Log(randomSource.NextDouble()) < Math.Exp (current_U - proposed_U + current_K - proposed_K))
                 {
                     acceptedSamples++;
-                    for (int i = 0; i < dimensions; i++)
+                    for (int i = 0; i < totalDimensions; i++)
                     {
                         samples[acceptedSamples - 1, i] = q[i];
                         current_q[i] = q[i];
-                        current_U = -model(current_q);
+                        current_U = -model(current_q.Take(numModelParameters).ToArray());
                     }
                 }
             }

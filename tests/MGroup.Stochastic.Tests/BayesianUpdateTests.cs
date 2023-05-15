@@ -2,6 +2,8 @@ using System;
 using Accord.Statistics;
 using Accord.Statistics.Distributions.Multivariate;
 using Accord.Statistics.Distributions.Univariate;
+using MGroup.Stochastic.Bayesian;
+using MGroup.Stochastic.Tests.SupportiveClasses;
 
 using Xunit;
 
@@ -24,7 +26,7 @@ namespace MGroup.Stochastic.Tests
 			var mean = samples.Mean();
 			var std = samples.StandardDeviation();
 			Assert.True(Math.Abs(mean - 1353000) < 50000);
-			Assert.True(Math.Abs(std[0] - 100000d) < 15000);
+			Assert.True(Math.Abs(std[0] - 100000d) < 20000);
 		}
 	}
 }

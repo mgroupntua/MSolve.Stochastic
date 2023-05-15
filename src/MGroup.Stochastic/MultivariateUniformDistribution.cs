@@ -14,29 +14,33 @@ namespace MGroup.Stochastic
 	[Serializable]
 	public class MultivariateUniformDistribution : MultivariateContinuousDistribution, IFittableDistribution<double[], IFittingOptions>, IFittable<double[], IFittingOptions>, IFittable<double[]>, IFittableDistribution<double[]>, IDistribution<double[]>, IDistribution, ICloneable, ISampleableDistribution<double[]>, IRandomNumberGenerator<double[]>
 	{
-		private double[] minValue;
-		private double[] maxValue;
+		private double[] lowerBound;
+		private double[] upperBound;
 		private double[] mean;
 		private double[] variance;
 		private double[,] covariance;
 
 		private double area;
 
+		public double[] LowerBound { get => lowerBound; }
 
-		public MultivariateUniformDistribution(double[] minValue, double[] maxValue) : base(minValue.Length)
+		public double[] UpperBound { get => upperBound; }
+
+
+		public MultivariateUniformDistribution(double[] lowerBound, double[] upperBound) : base(lowerBound.Length)
 		{
-			this.minValue = minValue;
-			this.maxValue = maxValue;
-			this.mean = new double[minValue.Length];
-			this.variance = new double[minValue.Length];
-			this.covariance = new double[minValue.Length, minValue.Length];
+			this.lowerBound = lowerBound;
+			this.upperBound = upperBound;
+			this.mean = new double[lowerBound.Length];
+			this.variance = new double[lowerBound.Length];
+			this.covariance = new double[lowerBound.Length, lowerBound.Length];
 			this.area = 1d;
-			for (int i = 0; i < minValue.Length; i++)
+			for (int i = 0; i < lowerBound.Length; i++)
 			{
-				this.mean[i] = (this.maxValue[i] + this.minValue[i]) / 2;
-				this.variance[i] = Math.Pow(this.maxValue[i] - this.minValue[i], 2) / 12;
+				this.mean[i] = (this.upperBound[i] + this.lowerBound[i]) / 2;
+				this.variance[i] = Math.Pow(this.upperBound[i] - this.lowerBound[i], 2) / 12;
 				this.covariance[i, i] = this.variance[i];
-				this.area *= (this.maxValue[i] - this.minValue[i]);
+				this.area *= (this.upperBound[i] - this.lowerBound[i]);
 			}
 		}
 
@@ -46,7 +50,7 @@ namespace MGroup.Stochastic
 
 		public override double[,] Covariance => covariance;
 
-		public override object Clone() => new MultivariateUniformDistribution(minValue, maxValue);
+		public override object Clone() => new MultivariateUniformDistribution(lowerBound, upperBound);
 
 		public override void Fit(double[][] observations, double[] weights, IFittingOptions options)
 		{
@@ -67,12 +71,12 @@ namespace MGroup.Stochastic
 				{
 					if (observation[i] < min)
 					{
-						minValue[i] = observation[i];
+						lowerBound[i] = observation[i];
 					}
 
 					if (observation[i] > max)
 					{
-						maxValue[i] = observation[i];
+						upperBound[i] = observation[i];
 					}
 				}
 			}
@@ -88,7 +92,7 @@ namespace MGroup.Stochastic
 			return 0.0 - System.Math.Log(area);
 		}
 
-		public new double[][] Generate(int samples = 1)
+		public new double[][] Generate(int samples)
 		{
 			Random random = new Random();
 			var totalSamples = new double[samples][];
@@ -97,15 +101,20 @@ namespace MGroup.Stochastic
 				totalSamples[i] = new double[Dimension];
 				for (int j = 0; j < Dimension; j++)
 				{
-					totalSamples[i][j] = (maxValue[j] - minValue[j]) * random.NextDouble() + minValue[j];
+					totalSamples[i][j] = (upperBound[j] - lowerBound[j]) * random.NextDouble() + lowerBound[j];
 				}
 			}
 			return totalSamples;
 		}
 
+		public new double[] Generate()
+		{
+			return Generate(1)[0];
+		}
+
 		public override string ToString(string format, IFormatProvider formatProvider)
 		{
-			return string.Format(formatProvider, "U(x; minValue, maxValue)");
+			return string.Format(formatProvider, "U(x; lowerBound, upperBound)");
 		}
 	}
 }

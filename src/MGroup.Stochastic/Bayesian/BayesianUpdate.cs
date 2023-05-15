@@ -4,7 +4,7 @@ using Accord;
 using Accord.Statistics.Distributions;
 using Accord.Statistics.Distributions.Multivariate;
 
-namespace MGroup.Stochastic
+namespace MGroup.Stochastic.Bayesian
 {
 	public class BayesianUpdate
 	{
@@ -29,6 +29,8 @@ namespace MGroup.Stochastic
 		public double LikelihoodModel(double[] sample) => likelihoodFunction.LogProbabilityDensityFunction(model(sample));
 
 		public ISampleableDistribution<double[]> PriorDistribution { get => priorDistribution; }
+
+		public double[] PriorDistributionSampler { get => priorDistribution.Generate(); }
 
 		public ISampleableDistribution<double[]> LikelihoodFuction { get => likelihoodFunction; }
 

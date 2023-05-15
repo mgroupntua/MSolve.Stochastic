@@ -4,6 +4,7 @@ using Accord.Statistics.Distributions.Multivariate;
 using Accord.Statistics.Distributions.Univariate;
 using MGroup.Stochastic.Interfaces;
 using System;
+using System.Linq;
 
 namespace MGroup.Stochastic
 {
@@ -18,41 +19,43 @@ namespace MGroup.Stochastic
 
 		private int burnIn;
 		private int rejectionRate;
-		private int dimensions;
+		private int numModelParameters;
 		private Random randomSource;
+		private int totalDimensions;
 
-		public MetropolisHastings(int dimensions, Func<double[], double> model, MultivariateNormalDistribution proposal, int burnIn = 0, int rejectionRate = 0)
+		public MetropolisHastings(int numModelParameters, Func<double[], double> model, MultivariateNormalDistribution proposal, int burnIn = 0, int rejectionRate = 0)
 		{
 			this.model = model;
 			this.proposalDistribution = proposal;
 			this.burnIn = burnIn;
 			this.rejectionRate = rejectionRate;
-			this.dimensions = dimensions;
-			this.currentSample = new double[dimensions];
-			this.candidateSample = new double[dimensions];
+			this.numModelParameters = numModelParameters;
+			this.totalDimensions = proposal.Dimension;
+			this.currentSample = new double[totalDimensions];
+			this.candidateSample = new double[totalDimensions];
 			this.randomSource = Generator.Random;
 		}
 
 		public double[,] GenerateSamples(int numSamples)
 		{
-			var samples = new double[numSamples, dimensions];
+			var samples = new double[numSamples, totalDimensions];
 			var acceptedSamples = 0;
 			var currentEvaluation = 0d;
 			if (initialSample == null)
-				currentEvaluation = model(proposalDistribution.Mean);
+				currentEvaluation = model(proposalDistribution.Mean.Take(numModelParameters).ToArray());
 			else
-				currentEvaluation = model(initialSample);
+				currentEvaluation = model(initialSample.Take(numModelParameters).ToArray());
 			while (acceptedSamples < numSamples + burnIn)
 			{
 				candidateSample = proposalDistribution.Generate();
-				var candidateEvaluation = model(candidateSample);
+				var candidateEvaluation = model(candidateSample.Take(numModelParameters).ToArray());
 				double Ratio = candidateEvaluation - currentEvaluation;
 				if (Math.Log(randomSource.NextDouble()) < Ratio)
 				{
 					acceptedSamples++;
 					if (acceptedSamples > burnIn)
 					{
-						for (int i = 0; i < dimensions; i++)
+						for (int i = 0; i < totalDimensions; i++)
 						{
 							samples[acceptedSamples - burnIn - 1, i] = candidateSample[i];
 							currentSample = candidateSample;
