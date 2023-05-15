@@ -1,9 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Accord.Math.Decompositions;
 using MGroup.Stochastic.Interfaces;
-using Troschuetz.Random.Distributions.Continuous;
+using Accord.Statistics.Distributions;
+using Accord.Statistics.Distributions.Univariate;
+using Accord.Statistics.Distributions.Multivariate;
 
 namespace MGroup.Stochastic.Structural.StochasticRealizers
 {
@@ -50,7 +52,7 @@ namespace MGroup.Stochastic.Structural.StochasticRealizers
             double[] xCoordinates = KarhunenLoeveFredholmWithFEM(KarLoeveTerms, DomainBounds, SigmaSquare, Partition, CorrelationLength).Item1;
             double[] lambda = KarhunenLoeveFredholmWithFEM(KarLoeveTerms, DomainBounds, SigmaSquare, Partition, CorrelationLength).Item2;
             double[,] eigenvectors = KarhunenLoeveFredholmWithFEM(KarLoeveTerms, DomainBounds, SigmaSquare, Partition, CorrelationLength).Item3;
-            KseNormalDistribution = new NormalDistribution(27644437, 0, 1);
+            KseNormalDistribution = new NormalDistribution(0, 1);
             Xcoordinates = xCoordinates;
             Lambda = lambda;
             Eigenvectors = eigenvectors;
@@ -78,7 +80,7 @@ namespace MGroup.Stochastic.Structural.StochasticRealizers
             Kse = new double[KarLoeveTerms];
             for (int i = 0; i < KarLoeveTerms; i++)
             {
-                Kse[i] = KseNormalDistribution.NextDouble();
+                Kse[i] = KseNormalDistribution.Generate();
             }
         }
 
